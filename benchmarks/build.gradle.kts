@@ -49,6 +49,14 @@ benchmark {
         // task and neither suite needs to exclude the other.
         remove(getByName("main"))
 
+        register("sequence") {
+            include(".*SequenceFilterIndexedBenchmark.*")
+            iterationTime = 1
+            iterationTimeUnit = "sec"
+            warmups = 3
+            iterations = 5
+        }
+
         register("classpathSnapshot") {
             include(".*ClasspathEntrySnapshotBenchmark.*")
             iterationTime = 1
@@ -143,6 +151,23 @@ afterEvaluate {
         // unconditionally and fails on a missing property. They are built for this module anyway.
         addJarPathProperty(TestCompilePaths.KOTLIN_SCRIPT_RUNTIME_PATH, ":kotlin-script-runtime")
         addJarPathProperty(TestCompilePaths.KOTLIN_TEST_JAR_PATH, ":kotlin-test")
+    }
+
+    tasks.register<JavaExec>("testSequenceGcBenchmark") {
+        dependsOn("testBenchmarkCompile")
+        val testSequence = tasks.named<JavaExec>("testSequenceBenchmark").get()
+        classpath(testSequence.classpath)
+        javaLauncher.set(testSequence.javaLauncher)
+        mainClass.set("org.openjdk.jmh.Main")
+        args(
+            ".*SequenceFilterIndexedBenchmark.*",
+            "-prof", "gc",
+            "-wi", "2",
+            "-i", "3",
+            "-f", "1",
+            "-tu", "us",
+            "-bm", "avgt"
+        )
     }
 }
 
